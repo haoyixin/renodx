@@ -2,15 +2,8 @@ name: Clang
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "**/*.json"
-      - "docs/**"
-      - ".github/workflows/**"
   pull_request:
-    branches: [main]
+    branches: [m4a]
     paths-ignore:
       - "**/*.md"
       - "**/*.json"
@@ -35,7 +28,6 @@ jobs:
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v5
 
-
       - name: Configure build for amd64
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -47,19 +39,19 @@ jobs:
       - name: Build (x64)
         run: cmake --build --preset clang-x64-release --verbose
 
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: latest
-          platform: x86
+      # - name: Set up Clang
+      #   uses: egor-tensin/setup-clang@v1
+      #   with:
+      #     version: latest
+      #     platform: x86
 
-      - name: Configure build for x86
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64_x86
+      # - name: Configure build for x86
+      #   uses: ilammy/msvc-dev-cmd@v1
+      #   with:
+      #     arch: amd64_x86
 
-      - name: Configure CMake (x86)
-        run: cmake --preset clang-x86
+      # - name: Configure CMake (x86)
+      #   run: cmake --preset clang-x86
 
-      - name: Build (x86)
-        run: cmake --build --preset clang-x86-release --verbose
+      # - name: Build (x86)
+      #   run: cmake --build --preset clang-x86-release --verbose

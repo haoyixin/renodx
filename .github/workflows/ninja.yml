@@ -2,15 +2,8 @@ name: Ninja
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "**/*.json"
-      - "docs/**"
-      - ".github/workflows/**"
   pull_request:
-    branches: [main]
+    branches: [m4a]
     paths-ignore:
       - "**/*.md"
       - "**/*.json"
@@ -22,7 +15,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -40,13 +33,13 @@ jobs:
       - name: Build (x64)
         run: cmake --build --preset ninja-x64-release --verbose
 
-      - name: Configure build for x86
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64_x86
+      # - name: Configure build for x86
+      #   uses: ilammy/msvc-dev-cmd@v1
+      #   with:
+      #     arch: amd64_x86
 
-      - name: Configure CMake (x86)
-        run: cmake --preset ninja-x86
+      # - name: Configure CMake (x86)
+      #   run: cmake --preset ninja-x86
 
-      - name: Build (x86)
-        run: cmake --build --preset ninja-x86-release --verbose
+      # - name: Build (x86)
+      #   run: cmake --build --preset ninja-x86-release --verbose
