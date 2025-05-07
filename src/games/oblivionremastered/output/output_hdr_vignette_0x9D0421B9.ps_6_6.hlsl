@@ -1,4 +1,4 @@
-#include "../shared.h"
+#include "../common.hlsl"
 
 StructuredBuffer<float4> EyeAdaptationBuffer : register(t0);
 
@@ -609,10 +609,13 @@ OutputSignature main(
   float _34 = EyeAdaptationBuffer[0].w;
   float4 _46 = ColorTexture.Sample(ColorSampler, float2(min(max(TEXCOORD.x, Color_UVViewportBilinearMin.x), Color_UVViewportBilinearMax.x), min(max(TEXCOORD.y, Color_UVViewportBilinearMin.y), Color_UVViewportBilinearMax.y)));
   float4 _70 = BloomTexture.Sample(BloomSampler, float2(min(max(((ColorToBloom.x * TEXCOORD.x) + ColorToBloom.z), BloomUVViewportBilinearMin.x), BloomUVViewportBilinearMax.x), min(max(((ColorToBloom.y * TEXCOORD.y) + ColorToBloom.w), BloomUVViewportBilinearMin.y), BloomUVViewportBilinearMax.y)));
+
+  _70 *= CUSTOM_BLOOM;
+
   float4 _89 = BloomDirtMaskTexture.Sample(BloomDirtMaskSampler, float2(((((LensPrincipalPointOffsetScale.z * TEXCOORD_3.x) + LensPrincipalPointOffsetScale.x) * 0.5f) + 0.5f), (0.5f - (((LensPrincipalPointOffsetScale.w * TEXCOORD_3.y) + LensPrincipalPointOffsetScale.y) * 0.5f))));
   float _108 = TonemapperParams.x * TEXCOORD_1.x;
   float _109 = TonemapperParams.x * TEXCOORD_1.y;
-  float _112 = 1.0f / (dot(float2(_108, _109), float2(_108, _109)) + 1.0f);
+  float _112 = 1.0f / (dot(float2(_108, _109), float2(_108, _109)) * CUSTOM_VIGNETTE + 1.0f);
   float _120 = SceneColorApplyParamaters[0].x;
   float _121 = SceneColorApplyParamaters[0].y;
   float _122 = SceneColorApplyParamaters[0].z;
@@ -627,37 +630,20 @@ OutputSignature main(
   float _171 = _164 - _135;
   float _181 = (_33 * View_OneOverPreExposure) * (_112 * _112);
   float _182 = _181 * exp2(((_135 - _169) + ((_169 - _164) * LocalExposure_DetailStrength)) + (select((_171 > 0.0f), LocalExposure_HighlightContrastScale, LocalExposure_ShadowContrastScale) * _171));
-  // float _207 = exp2(log2(((((ColorScale0.x * _46.x) * _120) * _182) + ((((BloomDirtMaskTint.x * _89.x) + 1.0f) * _70.x) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
-  // float _208 = exp2(log2(((((ColorScale0.y * _46.y) * _121) * _182) + ((((BloomDirtMaskTint.y * _89.y) + 1.0f) * _70.y) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
-  // float _209 = exp2(log2(((((ColorScale0.z * _46.z) * _122) * _182) + ((((BloomDirtMaskTint.z * _89.z) + 1.0f) * _70.z) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
-  // float4 _248 = ColorGradingLUT.Sample(ColorGradingLUTSampler, float3(((LUTScale * exp2(log2((1.0f / ((_207 * 18.6875f) + 1.0f)) * ((_207 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset), ((LUTScale * exp2(log2((1.0f / ((_208 * 18.6875f) + 1.0f)) * ((_208 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset), ((LUTScale * exp2(log2((1.0f / ((_209 * 18.6875f) + 1.0f)) * ((_209 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset)));
 
-  float3 bloom_extra = ((((BloomDirtMaskTint.rgb * _89.rgb) + 1.0f) * _70.rgb) * _181) * CUSTOM_BLOOM;
-  float autoexposure = lerp(1.f, _182, CUSTOM_AUTO_EXPOSURE);
-  float3 scaled_color = (((ColorScale0.rgb * _46.rgb) * SceneColorApplyParamaters[0].rgb) * autoexposure);
-  float3 untonemapped = bloom_extra + scaled_color;
-  float3 lut_coordinates = ((LUTScale * renodx::color::pq::Encode(untonemapped, 100.f)) + LUTOffset);
-  float4 _248 = ColorGradingLUT.SampleLevel(ColorGradingLUTSampler, lut_coordinates, 0.0f);
+  HandleLocalExposure(_33 * View_OneOverPreExposure, _181, _182);
 
+  float _207 = exp2(log2(((((ColorScale0.x * _46.x) * _120) * _182) + ((((BloomDirtMaskTint.x * _89.x) + 1.0f) * _70.x) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
+  float _208 = exp2(log2(((((ColorScale0.y * _46.y) * _121) * _182) + ((((BloomDirtMaskTint.y * _89.y) + 1.0f) * _70.y) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
+  float _209 = exp2(log2(((((ColorScale0.z * _46.z) * _122) * _182) + ((((BloomDirtMaskTint.z * _89.z) + 1.0f) * _70.z) * _181)) * 0.009999999776482582f) * 0.1593017578125f);
+  float4 _248 = ColorGradingLUT.Sample(ColorGradingLUTSampler, float3(((LUTScale * exp2(log2((1.0f / ((_207 * 18.6875f) + 1.0f)) * ((_207 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset), ((LUTScale * exp2(log2((1.0f / ((_208 * 18.6875f) + 1.0f)) * ((_208 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset), ((LUTScale * exp2(log2((1.0f / ((_209 * 18.6875f) + 1.0f)) * ((_209 * 18.8515625f) + 0.8359375f)) * 78.84375f)) + LUTOffset)));
   float _252 = _248.x * 1.0499999523162842f;
   float _253 = _248.y * 1.0499999523162842f;
   float _254 = _248.z * 1.0499999523162842f;
 
-  if (RENODX_TONE_MAP_TYPE != 0.f && CUSTOM_PROCESSING_MODE == 1.f) {
-    float3 mid_gray = (((ColorScale0.rgb * 0.18f) * SceneColorApplyParamaters[0].rgb) * autoexposure);
-    float mid_gray_luminance = renodx::color::y::from::BT709(mid_gray);
-    renodx::draw::Config config = renodx::draw::BuildConfig();
-    config.intermediate_encoding = renodx::draw::ENCODING_PQ;
-    config.intermediate_scaling = RENODX_DIFFUSE_WHITE_NITS;
-    config.intermediate_color_space = renodx::color::convert::COLOR_SPACE_BT2020;
-
-    float3 linear_color = renodx::draw::InvertIntermediatePass(float3(_252, _253, _254), config);
-    float3 tonemapped = renodx::draw::ToneMapPass(untonemapped * mid_gray_luminance / 0.18f, linear_color, config);
-    tonemapped = renodx::draw::RenderIntermediatePass(tonemapped, config);
-    _252 = tonemapped.r;
-    _253 = tonemapped.g;
-    _254 = tonemapped.b;
-  }
+  // Moved up
+  SV_Target_1 = dot(float3(_252, _253, _254), float3(0.29899999499320984f, 0.5870000123977661f, 0.11400000005960464f));
+  HandleLUTOutput(_252, _253, _254, SV_Target_1, TEXCOORD.xy, true);
 
   float _329;
   float _330;
@@ -680,25 +666,7 @@ OutputSignature main(
   }
 
   float _350 = 0.0f;
-  if (CUSTOM_GRAIN_TYPE == 1.f) {
-    renodx::draw::Config config = renodx::draw::BuildConfig();
-    config.intermediate_encoding = renodx::draw::ENCODING_PQ;
-    config.intermediate_scaling = RENODX_DIFFUSE_WHITE_NITS;
-    config.intermediate_color_space = renodx::color::convert::COLOR_SPACE_BT2020;
-
-    float3 linear_color = renodx::draw::InvertIntermediatePass(float3(_329, _330, _331), config);
-    float3 grained = renodx::effects::ApplyFilmGrain(
-        linear_color,
-        TEXCOORD.xy,
-        CUSTOM_RANDOM,
-        CUSTOM_GRAIN_STRENGTH * 0.03f,
-        1.f);
-
-    float3 encoded = renodx::draw::RenderIntermediatePass(grained, config);
-    _329 = encoded.r;
-    _330 = encoded.g;
-    _331 = encoded.b;
-  } else {
+  if (CUSTOM_GRAIN_TYPE == 0.f) {
     float _338 = (frac(sin((TEXCOORD_2.w * 543.3099975585938f) + TEXCOORD_2.z) * 493013.0f) * 2.0f) + -1.0f;
     float _341 = min(max((_338 * +1.#INF), -1.0f), 1.0f);
     _350 = (_341 - (sqrt(saturate(1.0f - abs(_338))) * _341)) * BackbufferQuantizationDithering;
@@ -707,7 +675,7 @@ OutputSignature main(
   SV_Target.y = (_350 + _330);
   SV_Target.z = (_350 + _331);
   SV_Target.w = 0.0f;
-  SV_Target_1 = dot(float3(_252, _253, _254), float3(0.29899999499320984f, 0.5870000123977661f, 0.11400000005960464f));
+  // SV_Target_1 = dot(float3(_252, _253, _254), float3(0.29899999499320984f, 0.5870000123977661f, 0.11400000005960464f));
   OutputSignature output_signature = { SV_Target, SV_Target_1 };
   return output_signature;
 }
